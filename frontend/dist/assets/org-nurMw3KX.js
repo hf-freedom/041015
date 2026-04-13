@@ -1,0 +1,1 @@
+import{q as t}from"./index-BsXlqNXW.js";function u(){return t({url:"/org/list",method:"get"})}function o(){return t({url:"/org/tree",method:"get"})}function d(e){return t({url:"/org/add",method:"post",data:e})}function g(e){return t({url:"/org/update",method:"put",data:e})}function n(e){return t({url:`/org/delete/${e}`,method:"delete"})}export{o as a,d as b,n as d,u as g,g as u};

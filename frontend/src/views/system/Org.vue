@@ -1,21 +1,13 @@
 <template>
-  <div class="org-management">
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span>组织机构管理</span>
-          <el-button type="primary" @click="handleAdd">新增机构</el-button>
-        </div>
-      </template>
-      <el-table :data="orgList" border stripe row-key="id" default-expand-all>
+  <div class="org-management page-container">
+    <PageCard title="组织机构管理" show-add add-text="新增机构" @add="handleAdd">
+      <DataTable :data="orgList" border stripe row-key="id" default-expand-all>
         <el-table-column prop="name" label="名称" />
         <el-table-column prop="code" label="编码" width="120" />
         <el-table-column prop="sort" label="排序" width="80" />
         <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'danger'">
-              {{ row.status === 1 ? '启用' : '禁用' }}
-            </el-tag>
+            <StatusTag :status="row.status" />
           </template>
         </el-table-column>
         <el-table-column label="操作" width="200">
@@ -24,11 +16,16 @@
             <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
-      </el-table>
-    </el-card>
+      </DataTable>
+    </PageCard>
 
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑机构' : '新增机构'" width="500px">
-      <el-form :model="form" label-width="100px">
+    <FormDialog
+      v-model="dialogVisible"
+      :title="isEdit ? '编辑机构' : '新增机构'"
+      :initial-data="form"
+      @submit="handleSubmit"
+    >
+      <template #default="{ form }">
         <el-form-item label="名称">
           <el-input v-model="form.name" />
         </el-form-item>
@@ -50,19 +47,16 @@
         <el-form-item label="状态">
           <el-switch v-model="form.status" :active-value="1" :inactive-value="0" />
         </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">确定</el-button>
       </template>
-    </el-dialog>
+    </FormDialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getOrgList, getOrgTree, addOrg, updateOrg, deleteOrg } from '@/api/org'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { PageCard, DataTable, FormDialog, StatusTag } from '@/components'
 
 const orgList = ref([])
 const orgTree = ref([])
@@ -106,15 +100,15 @@ const handleEdit = (row) => {
   dialogVisible.value = true
 }
 
-const handleSubmit = async () => {
+const handleSubmit = async (formData, done) => {
   try {
     if (isEdit.value) {
-      await updateOrg(form.value)
+      await updateOrg(formData)
     } else {
-      await addOrg(form.value)
+      await addOrg(formData)
     }
     ElMessage.success('操作成功')
-    dialogVisible.value = false
+    done()
     loadData()
   } catch (error) {
     ElMessage.error('操作失败')
@@ -123,16 +117,11 @@ const handleSubmit = async () => {
 
 const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要删除该机构吗？', '提示', {
-      type: 'warning'
-    })
     await deleteOrg(row.id)
     ElMessage.success('删除成功')
     loadData()
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除失败')
-    }
+    ElMessage.error('删除失败')
   }
 }
 
@@ -142,9 +131,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.org-management {
+  padding: 20px;
 }
 </style>

@@ -1,13 +1,7 @@
 <template>
-  <div class="user-management">
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span>用户管理</span>
-          <el-button type="primary" @click="handleAdd">新增用户</el-button>
-        </div>
-      </template>
-      <el-table :data="userList" border stripe>
+  <div class="user-management page-container">
+    <PageCard title="用户管理" show-add add-text="新增用户" @add="handleAdd">
+      <DataTable :data="userList" border stripe>
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="username" label="用户名" width="120" />
         <el-table-column prop="nickname" label="昵称" width="120" />
@@ -15,9 +9,7 @@
         <el-table-column prop="phone" label="电话" width="120" />
         <el-table-column prop="status" label="状态" width="80">
           <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'danger'">
-              {{ row.status === 1 ? '启用' : '禁用' }}
-            </el-tag>
+            <StatusTag :status="row.status" />
           </template>
         </el-table-column>
         <el-table-column label="操作" width="280">
@@ -27,11 +19,16 @@
             <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
-      </el-table>
-    </el-card>
+      </DataTable>
+    </PageCard>
 
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑用户' : '新增用户'" width="500px">
-      <el-form :model="form" label-width="100px">
+    <FormDialog
+      v-model="dialogVisible"
+      :title="isEdit ? '编辑用户' : '新增用户'"
+      :initial-data="form"
+      @submit="handleSubmit"
+    >
+      <template #default="{ form }">
         <el-form-item label="用户名">
           <el-input v-model="form.username" :disabled="isEdit" />
         </el-form-item>
@@ -59,12 +56,8 @@
         <el-form-item label="状态">
           <el-switch v-model="form.status" :active-value="1" :inactive-value="0" />
         </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">确定</el-button>
       </template>
-    </el-dialog>
+    </FormDialog>
 
     <el-dialog v-model="roleDialogVisible" title="分配角色" width="400px">
       <el-checkbox-group v-model="selectedRoles">
@@ -85,7 +78,8 @@ import { ref, onMounted } from 'vue'
 import { getUserList, addUser, updateUser, deleteUser, getUserRoles, updateUserRoles } from '@/api/user'
 import { getOrgTree } from '@/api/org'
 import { getRoleList } from '@/api/role'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { PageCard, DataTable, FormDialog, StatusTag } from '@/components'
 
 const userList = ref([])
 const orgTree = ref([])
@@ -142,15 +136,15 @@ const handleEdit = (row) => {
   dialogVisible.value = true
 }
 
-const handleSubmit = async () => {
+const handleSubmit = async (formData, done) => {
   try {
     if (isEdit.value) {
-      await updateUser(form.value)
+      await updateUser(formData)
     } else {
-      await addUser(form.value)
+      await addUser(formData)
     }
     ElMessage.success('操作成功')
-    dialogVisible.value = false
+    done()
     loadData()
   } catch (error) {
     ElMessage.error('操作失败')
@@ -159,16 +153,11 @@ const handleSubmit = async () => {
 
 const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要删除该用户吗？', '提示', {
-      type: 'warning'
-    })
     await deleteUser(row.id)
     ElMessage.success('删除成功')
     loadData()
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除失败')
-    }
+    ElMessage.error('删除失败')
   }
 }
 
@@ -195,9 +184,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.user-management {
+  padding: 20px;
 }
 </style>

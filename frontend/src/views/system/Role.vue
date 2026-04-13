@@ -1,22 +1,14 @@
 <template>
-  <div class="role-management">
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span>角色管理</span>
-          <el-button type="primary" @click="handleAdd">新增角色</el-button>
-        </div>
-      </template>
-      <el-table :data="roleList" border stripe>
+  <div class="role-management page-container">
+    <PageCard title="角色管理" show-add add-text="新增角色" @add="handleAdd">
+      <DataTable :data="roleList" border stripe>
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="name" label="名称" width="150" />
         <el-table-column prop="code" label="编码" width="150" />
         <el-table-column prop="description" label="描述" />
         <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'danger'">
-              {{ row.status === 1 ? '启用' : '禁用' }}
-            </el-tag>
+            <StatusTag :status="row.status" />
           </template>
         </el-table-column>
         <el-table-column label="操作" width="280">
@@ -26,11 +18,16 @@
             <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
-      </el-table>
-    </el-card>
+      </DataTable>
+    </PageCard>
 
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑角色' : '新增角色'" width="500px">
-      <el-form :model="form" label-width="100px">
+    <FormDialog
+      v-model="dialogVisible"
+      :title="isEdit ? '编辑角色' : '新增角色'"
+      :initial-data="form"
+      @submit="handleSubmit"
+    >
+      <template #default="{ form }">
         <el-form-item label="名称">
           <el-input v-model="form.name" />
         </el-form-item>
@@ -43,12 +40,8 @@
         <el-form-item label="状态">
           <el-switch v-model="form.status" :active-value="1" :inactive-value="0" />
         </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">确定</el-button>
       </template>
-    </el-dialog>
+    </FormDialog>
 
     <el-dialog v-model="menuDialogVisible" title="分配菜单" width="500px">
       <el-tree
@@ -71,7 +64,8 @@
 import { ref, onMounted, nextTick } from 'vue'
 import { getRoleList, addRole, updateRole, deleteRole, getRoleMenus, updateRoleMenus } from '@/api/role'
 import { getMenuTree } from '@/api/menu'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { PageCard, DataTable, FormDialog, StatusTag } from '@/components'
 
 const roleList = ref([])
 const menuTree = ref([])
@@ -116,15 +110,15 @@ const handleEdit = (row) => {
   dialogVisible.value = true
 }
 
-const handleSubmit = async () => {
+const handleSubmit = async (formData, done) => {
   try {
     if (isEdit.value) {
-      await updateRole(form.value)
+      await updateRole(formData)
     } else {
-      await addRole(form.value)
+      await addRole(formData)
     }
     ElMessage.success('操作成功')
-    dialogVisible.value = false
+    done()
     loadData()
   } catch (error) {
     ElMessage.error('操作失败')
@@ -133,16 +127,11 @@ const handleSubmit = async () => {
 
 const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要删除该角色吗？', '提示', {
-      type: 'warning'
-    })
     await deleteRole(row.id)
     ElMessage.success('删除成功')
     loadData()
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除失败')
-    }
+    ElMessage.error('删除失败')
   }
 }
 
@@ -171,9 +160,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.role-management {
+  padding: 20px;
 }
 </style>
