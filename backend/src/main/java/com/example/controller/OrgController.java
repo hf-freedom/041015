@@ -3,7 +3,7 @@ package com.example.controller;
 import com.example.annotation.RequirePermission;
 import com.example.common.Result;
 import com.example.entity.Organization;
-import com.example.service.OrgService;
+import com.example.logic.OrgLogic;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,42 +15,42 @@ import java.util.Map;
 public class OrgController {
 
     @Autowired
-    private OrgService orgService;
+    private OrgLogic orgLogic;
 
     @GetMapping("/list")
     @RequirePermission("/api/org/list")
     public Result<List<Organization>> list() {
-        return Result.success(orgService.list());
+        return Result.success(orgLogic.list());
     }
 
     @GetMapping("/tree")
     public Result<List<Map<String, Object>>> tree() {
-        return Result.success(orgService.getTree());
+        return Result.success(orgLogic.getTree());
     }
 
     @GetMapping("/{id}")
     public Result<Organization> getById(@PathVariable Long id) {
-        return Result.success(orgService.getById(id));
+        return Result.success(orgLogic.getById(id));
     }
 
     @PostMapping("/add")
     @RequirePermission("/api/org/add")
     public Result<Void> add(@RequestBody Organization org) {
-        orgService.add(org);
+        orgLogic.add(org);
         return Result.success();
     }
 
     @PutMapping("/update")
     @RequirePermission("/api/org/update")
     public Result<Void> update(@RequestBody Organization org) {
-        orgService.update(org);
+        orgLogic.update(org);
         return Result.success();
     }
 
     @DeleteMapping("/delete/{id}")
     @RequirePermission("/api/org/delete")
     public Result<Void> delete(@PathVariable Long id) {
-        orgService.delete(id);
+        orgLogic.delete(id);
         return Result.success();
     }
 }

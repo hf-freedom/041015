@@ -1,13 +1,7 @@
 <template>
-  <div class="api-management">
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span>API权限管理</span>
-          <el-button type="primary" @click="handleAdd">新增API</el-button>
-        </div>
-      </template>
-      <el-table :data="apiList" border stripe>
+  <div class="api-management page-container">
+    <PageCard title="API权限管理" show-add add-text="新增API" @add="handleAdd">
+      <DataTable :data="apiList" border stripe>
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="name" label="名称" width="180" />
         <el-table-column prop="url" label="URL" />
@@ -25,11 +19,16 @@
             <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
-      </el-table>
-    </el-card>
+      </DataTable>
+    </PageCard>
 
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑API' : '新增API'" width="500px">
-      <el-form :model="form" label-width="100px">
+    <FormDialog
+      v-model="dialogVisible"
+      :title="isEdit ? '编辑API' : '新增API'"
+      :initial-data="form"
+      @submit="handleSubmit"
+    >
+      <template #default="{ form }">
         <el-form-item label="名称">
           <el-input v-model="form.name" />
         </el-form-item>
@@ -53,12 +52,8 @@
             clearable
           />
         </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">确定</el-button>
       </template>
-    </el-dialog>
+    </FormDialog>
   </div>
 </template>
 
@@ -66,7 +61,8 @@
 import { ref, onMounted } from 'vue'
 import { getApiList, addApi, updateApi, deleteApi } from '@/api/api'
 import { getMenuTree } from '@/api/menu'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { PageCard, DataTable, FormDialog } from '@/components'
 
 const apiList = ref([])
 const menuTree = ref([])
@@ -118,15 +114,15 @@ const handleEdit = (row) => {
   dialogVisible.value = true
 }
 
-const handleSubmit = async () => {
+const handleSubmit = async (formData, done) => {
   try {
     if (isEdit.value) {
-      await updateApi(form.value)
+      await updateApi(formData)
     } else {
-      await addApi(form.value)
+      await addApi(formData)
     }
     ElMessage.success('操作成功')
-    dialogVisible.value = false
+    done()
     loadData()
   } catch (error) {
     ElMessage.error('操作失败')
@@ -135,16 +131,11 @@ const handleSubmit = async () => {
 
 const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要删除该API吗？', '提示', {
-      type: 'warning'
-    })
     await deleteApi(row.id)
     ElMessage.success('删除成功')
     loadData()
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除失败')
-    }
+    ElMessage.error('删除失败')
   }
 }
 
@@ -154,9 +145,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.api-management {
+  padding: 20px;
 }
 </style>
