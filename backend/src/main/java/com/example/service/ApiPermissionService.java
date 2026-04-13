@@ -1,6 +1,5 @@
 package com.example.service;
 
-import com.example.cache.LocalCache;
 import com.example.entity.ApiPermission;
 import com.example.mapper.ApiPermissionMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,9 +15,6 @@ public class ApiPermissionService {
     @Autowired
     private ApiPermissionMapper apiPermissionMapper;
 
-    @Autowired
-    private LocalCache localCache;
-
     public List<ApiPermission> list() {
         return apiPermissionMapper.selectAll();
     }
@@ -28,7 +24,6 @@ public class ApiPermissionService {
     }
 
     public void add(ApiPermission api) {
-        api.setId(localCache.generateApiId());
         api.setCreateTime(LocalDateTime.now());
         api.setUpdateTime(LocalDateTime.now());
         apiPermissionMapper.insert(api);

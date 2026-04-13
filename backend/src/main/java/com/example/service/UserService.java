@@ -1,19 +1,12 @@
 package com.example.service;
 
-import com.example.cache.LocalCache;
-import com.example.config.JwtConfig;
 import com.example.entity.User;
 import com.example.mapper.UserMapper;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class UserService {
@@ -21,52 +14,8 @@ public class UserService {
     @Autowired
     private UserMapper userMapper;
 
-    @Autowired
-    private LocalCache localCache;
-
-    @Autowired
-    private JwtConfig jwtConfig;
-
-    public Map<String, Object> login(String username, String password) {
-        User user = userMapper.selectByUsername(username);
-        if (user == null) {
-            return null;
-        }
-        if (!user.getPassword().equals(password)) {
-            return null;
-        }
-        if (user.getStatus() != 1) {
-            return null;
-        }
-        String token = generateToken(user.getId());
-        Map<String, Object> result = new HashMap<>();
-        result.put("token", token);
-        result.put("user", user);
-        return result;
-    }
-
-    private String generateToken(Long userId) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtConfig.getExpiration());
-        return Jwts.builder()
-                .setSubject(String.valueOf(userId))
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
-                .signWith(SignatureAlgorithm.HS512, jwtConfig.getSecret())
-                .compact();
-    }
-
-    public Long getUserIdFromToken(String token) {
-        try {
-            String subject = Jwts.parser()
-                    .setSigningKey(jwtConfig.getSecret())
-                    .parseClaimsJws(token)
-                    .getBody()
-                    .getSubject();
-            return Long.parseLong(subject);
-        } catch (Exception e) {
-            return null;
-        }
+    public User getByUsername(String username) {
+        return userMapper.selectByUsername(username);
     }
 
     public User getById(Long id) {
@@ -78,7 +27,6 @@ public class UserService {
     }
 
     public void add(User user) {
-        user.setId(localCache.generateUserId());
         user.setCreateTime(LocalDateTime.now());
         user.setUpdateTime(LocalDateTime.now());
         userMapper.insert(user);
