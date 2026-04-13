@@ -1,0 +1,24 @@
+:root {
+  --primary-color: #409eff;
+  --success-color: #67c23a;
+  --warning-color: #e6a23c;
+  --danger-color: #f56c6c;
+  --info-color: #909399;
+
+  --text-primary: #303133;
+  --text-secondary: #606266;
+  --text-placeholder: #909399;
+  --text-disabled: #c0c4cc;
+
+  --border-color: #dcdfe6;
+  --border-light: #e4e7ed;
+  --border-lighter: #ebeef5;
+
+  --bg-color: #f5f7fa;
+  --bg-white: #ffffff;
+
+  --sidebar-width: 220px;
+  --header-height: 60px;
+
+  --transition-base: all 0.3s ease;
+}
