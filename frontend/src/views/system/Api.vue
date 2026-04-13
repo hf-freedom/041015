@@ -1,12 +1,6 @@
 <template>
   <div class="api-management">
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span>API权限管理</span>
-          <el-button type="primary" @click="handleAdd">新增API</el-button>
-        </div>
-      </template>
+    <PageCard title="API权限管理" addText="新增API" @add="handleAdd">
       <el-table :data="apiList" border stripe>
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="name" label="名称" width="180" />
@@ -26,39 +20,33 @@
           </template>
         </el-table-column>
       </el-table>
-    </el-card>
+    </PageCard>
 
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑API' : '新增API'" width="500px">
-      <el-form :model="form" label-width="100px">
-        <el-form-item label="名称">
-          <el-input v-model="form.name" />
-        </el-form-item>
-        <el-form-item label="URL">
-          <el-input v-model="form.url" />
-        </el-form-item>
-        <el-form-item label="请求方法">
-          <el-select v-model="form.method" style="width: 100%">
-            <el-option label="GET" value="GET" />
-            <el-option label="POST" value="POST" />
-            <el-option label="PUT" value="PUT" />
-            <el-option label="DELETE" value="DELETE" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="关联菜单">
-          <el-tree-select
-            v-model="form.menuId"
-            :data="menuTree"
-            :props="{ label: 'name', value: 'id' }"
-            check-strictly
-            clearable
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">确定</el-button>
-      </template>
-    </el-dialog>
+    <FormDialog v-model="dialogVisible" :title="isEdit ? '编辑API' : '新增API'" :formData="form" @submit="handleSubmit">
+      <el-form-item label="名称">
+        <el-input v-model="form.name" />
+      </el-form-item>
+      <el-form-item label="URL">
+        <el-input v-model="form.url" />
+      </el-form-item>
+      <el-form-item label="请求方法">
+        <el-select v-model="form.method" style="width: 100%">
+          <el-option label="GET" value="GET" />
+          <el-option label="POST" value="POST" />
+          <el-option label="PUT" value="PUT" />
+          <el-option label="DELETE" value="DELETE" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="关联菜单">
+        <el-tree-select
+          v-model="form.menuId"
+          :data="menuTree"
+          :props="{ label: 'name', value: 'id' }"
+          check-strictly
+          clearable
+        />
+      </el-form-item>
+    </FormDialog>
   </div>
 </template>
 
@@ -67,11 +55,14 @@ import { ref, onMounted } from 'vue'
 import { getApiList, addApi, updateApi, deleteApi } from '@/api/api'
 import { getMenuTree } from '@/api/menu'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import PageCard from '@/components/PageCard.vue'
+import FormDialog from '@/components/FormDialog.vue'
+import { useTable, useDialog, useTreeSelect } from '@/composables/useTable'
 
-const apiList = ref([])
-const menuTree = ref([])
-const dialogVisible = ref(false)
-const isEdit = ref(false)
+const { dataList: apiList, loadData: loadApis } = useTable(getApiList)
+const { treeData: menuTree, loadTree: loadMenuTree } = useTreeSelect(getMenuTree)
+const { dialogVisible, isEdit, openDialog, closeDialog } = useDialog()
+
 const form = ref({
   id: null,
   name: '',
@@ -91,31 +82,25 @@ const getMethodType = (method) => {
 }
 
 const loadData = async () => {
-  try {
-    const [apis, menus] = await Promise.all([getApiList(), getMenuTree()])
-    apiList.value = apis.data || []
-    menuTree.value = menus.data || []
-  } catch (error) {
-    ElMessage.error('加载数据失败')
-  }
+  await Promise.all([loadApis(), loadMenuTree()])
 }
 
+const resetForm = () => ({
+  id: null,
+  name: '',
+  url: '',
+  method: 'GET',
+  menuId: null
+})
+
 const handleAdd = () => {
-  isEdit.value = false
-  form.value = {
-    id: null,
-    name: '',
-    url: '',
-    method: 'GET',
-    menuId: null
-  }
-  dialogVisible.value = true
+  form.value = resetForm()
+  openDialog(false)
 }
 
 const handleEdit = (row) => {
-  isEdit.value = true
   form.value = { ...row }
-  dialogVisible.value = true
+  openDialog(true)
 }
 
 const handleSubmit = async () => {
@@ -126,7 +111,7 @@ const handleSubmit = async () => {
       await addApi(form.value)
     }
     ElMessage.success('操作成功')
-    dialogVisible.value = false
+    closeDialog()
     loadData()
   } catch (error) {
     ElMessage.error('操作失败')
@@ -135,9 +120,7 @@ const handleSubmit = async () => {
 
 const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要删除该API吗？', '提示', {
-      type: 'warning'
-    })
+    await ElMessageBox.confirm('确定要删除该API吗？', '提示', { type: 'warning' })
     await deleteApi(row.id)
     ElMessage.success('删除成功')
     loadData()
@@ -152,11 +135,3 @@ onMounted(() => {
   loadData()
 })
 </script>
-
-<style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-</style>

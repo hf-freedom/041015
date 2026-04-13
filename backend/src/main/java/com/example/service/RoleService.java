@@ -1,6 +1,5 @@
 package com.example.service;
 
-import com.example.cache.LocalCache;
 import com.example.entity.Role;
 import com.example.mapper.RoleMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,9 +14,6 @@ public class RoleService {
     @Autowired
     private RoleMapper roleMapper;
 
-    @Autowired
-    private LocalCache localCache;
-
     public List<Role> list() {
         return roleMapper.selectAll();
     }
@@ -27,7 +23,6 @@ public class RoleService {
     }
 
     public void add(Role role) {
-        role.setId(localCache.generateRoleId());
         role.setCreateTime(LocalDateTime.now());
         role.setUpdateTime(LocalDateTime.now());
         roleMapper.insert(role);

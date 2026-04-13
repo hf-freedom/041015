@@ -1,25 +1,13 @@
 <template>
   <div class="user-management">
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span>用户管理</span>
-          <el-button type="primary" @click="handleAdd">新增用户</el-button>
-        </div>
-      </template>
+    <PageCard title="用户管理" @add="handleAdd">
       <el-table :data="userList" border stripe>
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="username" label="用户名" width="120" />
         <el-table-column prop="nickname" label="昵称" width="120" />
         <el-table-column prop="email" label="邮箱" width="180" />
         <el-table-column prop="phone" label="电话" width="120" />
-        <el-table-column prop="status" label="状态" width="80">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'danger'">
-              {{ row.status === 1 ? '启用' : '禁用' }}
-            </el-tag>
-          </template>
-        </el-table-column>
+        <StatusColumn />
         <el-table-column label="操作" width="280">
           <template #default="{ row }">
             <el-button size="small" @click="handleEdit(row)">编辑</el-button>
@@ -28,43 +16,35 @@
           </template>
         </el-table-column>
       </el-table>
-    </el-card>
+    </PageCard>
 
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑用户' : '新增用户'" width="500px">
-      <el-form :model="form" label-width="100px">
-        <el-form-item label="用户名">
-          <el-input v-model="form.username" :disabled="isEdit" />
-        </el-form-item>
-        <el-form-item label="密码" v-if="!isEdit">
-          <el-input v-model="form.password" type="password" show-password />
-        </el-form-item>
-        <el-form-item label="昵称">
-          <el-input v-model="form.nickname" />
-        </el-form-item>
-        <el-form-item label="邮箱">
-          <el-input v-model="form.email" />
-        </el-form-item>
-        <el-form-item label="电话">
-          <el-input v-model="form.phone" />
-        </el-form-item>
-        <el-form-item label="所属机构">
-          <el-tree-select
-            v-model="form.orgId"
-            :data="orgTree"
-            :props="{ label: 'name', value: 'id' }"
-            check-strictly
-            clearable
-          />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-switch v-model="form.status" :active-value="1" :inactive-value="0" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">确定</el-button>
-      </template>
-    </el-dialog>
+    <FormDialog v-model="dialogVisible" :title="isEdit ? '编辑用户' : '新增用户'" :formData="form" @submit="handleSubmit">
+      <el-form-item label="用户名">
+        <el-input v-model="form.username" :disabled="isEdit" />
+      </el-form-item>
+      <el-form-item label="密码" v-if="!isEdit">
+        <el-input v-model="form.password" type="password" show-password />
+      </el-form-item>
+      <el-form-item label="昵称">
+        <el-input v-model="form.nickname" />
+      </el-form-item>
+      <el-form-item label="邮箱">
+        <el-input v-model="form.email" />
+      </el-form-item>
+      <el-form-item label="电话">
+        <el-input v-model="form.phone" />
+      </el-form-item>
+      <el-form-item label="所属机构">
+        <el-tree-select
+          v-model="form.orgId"
+          :data="orgTree"
+          :props="{ label: 'name', value: 'id' }"
+          check-strictly
+          clearable
+        />
+      </el-form-item>
+      <StatusSwitch v-model="form.status" />
+    </FormDialog>
 
     <el-dialog v-model="roleDialogVisible" title="分配角色" width="400px">
       <el-checkbox-group v-model="selectedRoles">
@@ -85,14 +65,21 @@ import { ref, onMounted } from 'vue'
 import { getUserList, addUser, updateUser, deleteUser, getUserRoles, updateUserRoles } from '@/api/user'
 import { getOrgTree } from '@/api/org'
 import { getRoleList } from '@/api/role'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import PageCard from '@/components/PageCard.vue'
+import FormDialog from '@/components/FormDialog.vue'
+import StatusColumn from '@/components/StatusColumn.vue'
+import StatusSwitch from '@/components/StatusSwitch.vue'
+import { useTable, useDialog, useTreeSelect } from '@/composables/useTable'
 
-const userList = ref([])
-const orgTree = ref([])
-const roleList = ref([])
-const dialogVisible = ref(false)
+const { dataList: userList, loadData: loadUsers } = useTable(getUserList)
+const { treeData: orgTree, loadTree: loadOrgTree } = useTreeSelect(getOrgTree)
+const { treeData: roleList, loadTree: loadRoles } = useTreeSelect(getRoleList)
+const { dialogVisible, isEdit, openDialog, closeDialog } = useDialog()
+
 const roleDialogVisible = ref(false)
-const isEdit = ref(false)
+const selectedRoles = ref([])
+const currentUserId = ref(null)
 const form = ref({
   id: null,
   username: '',
@@ -103,43 +90,30 @@ const form = ref({
   orgId: null,
   status: 1
 })
-const selectedRoles = ref([])
-const currentUserId = ref(null)
 
 const loadData = async () => {
-  try {
-    const [users, orgs, roles] = await Promise.all([
-      getUserList(),
-      getOrgTree(),
-      getRoleList()
-    ])
-    userList.value = users.data || []
-    orgTree.value = orgs.data || []
-    roleList.value = roles.data || []
-  } catch (error) {
-    ElMessage.error('加载数据失败')
-  }
+  await Promise.all([loadUsers(), loadOrgTree(), loadRoles()])
 }
 
+const resetForm = () => ({
+  id: null,
+  username: '',
+  password: '',
+  nickname: '',
+  email: '',
+  phone: '',
+  orgId: null,
+  status: 1
+})
+
 const handleAdd = () => {
-  isEdit.value = false
-  form.value = {
-    id: null,
-    username: '',
-    password: '',
-    nickname: '',
-    email: '',
-    phone: '',
-    orgId: null,
-    status: 1
-  }
-  dialogVisible.value = true
+  form.value = resetForm()
+  openDialog(false)
 }
 
 const handleEdit = (row) => {
-  isEdit.value = true
   form.value = { ...row }
-  dialogVisible.value = true
+  openDialog(true)
 }
 
 const handleSubmit = async () => {
@@ -150,7 +124,7 @@ const handleSubmit = async () => {
       await addUser(form.value)
     }
     ElMessage.success('操作成功')
-    dialogVisible.value = false
+    closeDialog()
     loadData()
   } catch (error) {
     ElMessage.error('操作失败')
@@ -159,9 +133,7 @@ const handleSubmit = async () => {
 
 const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要删除该用户吗？', '提示', {
-      type: 'warning'
-    })
+    await ElMessageBox.confirm('确定要删除该用户吗？', '提示', { type: 'warning' })
     await deleteUser(row.id)
     ElMessage.success('删除成功')
     loadData()
@@ -193,11 +165,3 @@ onMounted(() => {
   loadData()
 })
 </script>
-
-<style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-</style>

@@ -3,8 +3,8 @@ package com.example.controller;
 import com.example.annotation.RequirePermission;
 import com.example.common.Result;
 import com.example.entity.User;
-import com.example.service.RoleService;
-import com.example.service.UserService;
+import com.example.logic.RoleLogic;
+import com.example.logic.UserLogic;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,40 +17,40 @@ import java.util.Map;
 public class UserController {
 
     @Autowired
-    private UserService userService;
+    private UserLogic userLogic;
 
     @Autowired
-    private RoleService roleService;
+    private RoleLogic roleLogic;
 
     @GetMapping("/list")
     @RequirePermission("/api/user/list")
     public Result<List<User>> list() {
-        return Result.success(userService.list());
+        return Result.success(userLogic.listUsers());
     }
 
     @GetMapping("/{id}")
     public Result<User> getById(@PathVariable Long id) {
-        return Result.success(userService.getById(id));
+        return Result.success(userLogic.getUserById(id));
     }
 
     @PostMapping("/add")
     @RequirePermission("/api/user/add")
     public Result<Void> add(@RequestBody User user) {
-        userService.add(user);
+        userLogic.addUser(user);
         return Result.success();
     }
 
     @PutMapping("/update")
     @RequirePermission("/api/user/update")
     public Result<Void> update(@RequestBody User user) {
-        userService.update(user);
+        userLogic.updateUser(user);
         return Result.success();
     }
 
     @DeleteMapping("/delete/{id}")
     @RequirePermission("/api/user/delete")
     public Result<Void> delete(@PathVariable Long id) {
-        userService.delete(id);
+        userLogic.deleteUser(id);
         return Result.success();
     }
 
@@ -58,7 +58,7 @@ public class UserController {
     public Result<Void> updateProfile(@RequestBody User user, HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
         user.setId(userId);
-        userService.updateProfile(user);
+        userLogic.updateProfile(user);
         return Result.success();
     }
 
@@ -67,18 +67,18 @@ public class UserController {
         Long userId = (Long) request.getAttribute("userId");
         String oldPassword = params.get("oldPassword");
         String newPassword = params.get("newPassword");
-        userService.updatePassword(userId, oldPassword, newPassword);
+        userLogic.updatePassword(userId, oldPassword, newPassword);
         return Result.success();
     }
 
     @GetMapping("/roles/{userId}")
     public Result<List<Long>> getUserRoles(@PathVariable Long userId) {
-        return Result.success(roleService.getRoleIdsByUserId(userId));
+        return Result.success(roleLogic.getRoleIdsByUserId(userId));
     }
 
     @PutMapping("/roles/{userId}")
     public Result<Void> updateUserRoles(@PathVariable Long userId, @RequestBody List<Long> roleIds) {
-        roleService.updateUserRoles(userId, roleIds);
+        roleLogic.updateUserRoles(userId, roleIds);
         return Result.success();
     }
 }
